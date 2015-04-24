@@ -6,6 +6,7 @@ This testsuite allows running different kinds of performance tests against the p
 
 * [The Benchmark](#benchmark)
 * [The Sql Statement Log](#sql-statement-log)
+* [The Activity Log](#activity-log)
 * [Configuration](#configuration)
    1. [Database](#configuration-database)
    2. [History](#configuration-history)
@@ -65,7 +66,7 @@ configurations over a long period. If you choose a file outside of your target d
 for the next run.
 
 ```Shell
-mvn clean install -Pbenchmark,h2 \ 
+mvn clean install -Pbenchmark,h2 \
                   -DlongTermBenchmarkResultFile=C:\\Arbeit\\camunda\\performanceTests\\longtermResults.csv
 ```
 
@@ -73,7 +74,7 @@ The results file may look like this:
 
 ![LongTermBenchmarkResult Screenshot][3]
 
-This feature works only in the benchmark profile.  
+This feature works only in the benchmark profile.
 
 <a name="sql-statement-log"></a>
 ## The Sql Statement Log
@@ -85,7 +86,7 @@ The Sql Statement Log allows you to gain insight into the process engine's commu
 The sql-statementlog will typically run each performance test once and on a single thread. In order to run it, use the `sql-statementlog` profile:
 
 ```Shell
-mvn clean install -Psql-statementlog,h2 
+mvn clean install -Psql-statementlog,h2
 ```
 
 ### Inspecting the Sql Statement Log Results
@@ -138,12 +139,86 @@ The raw JSON result files allow you to inspect the database communication betwee
                     "statementType": "SELECT_MAP",
                     "statement": "selectProcessDefinitionById",
                     "durationMs": 1
-                }, ...               
+                }, ...
             ]
         }
     ]
 }
 ```
+
+
+<a name="activity-log"></a>
+## The Activity Log
+
+The Activity Log allows you to gain insight into the process engine's job execution.
+
+### Running the Activity Log
+
+The to enable the activity log set the `watchActivities` properties to the activity ids to log. To create a reports for this activities use the `activity-count` profile.
+**Note**: Currently the activity count report only supports one test process to be execute, otherwise the report messed up.
+
+```Shell
+mvn clean install -P activity-count,h2 -DwatchActivities=start,timer,end -Dtest=AsyncStartAndTimerPerformanceTest
+```
+
+### Inspecting the Activity Log Results
+
+Running the Activity Log will produce the following folders in the `target/` folder of the project:
+
+* `reports/` - containing an aggregated report for all recorded activities in HTML, JSON and CSV format.
+* `results/` - containing the results of the individual test runs in raw JSON format.
+
+The HTML report gives you an aggregated overview over the start time, end time and average duration of every activity cumulated over the execution time:
+
+![Activity log Screenshot][4]
+
+The raw JSON result files allow you to inspect the activity execution on a fine grained level:
+
+```json
+{
+  "testName" : "AsyncStartAndTimerPerformanceTest.test",
+  "configuration" : {
+    "numberOfThreads" : 1,
+    "numberOfRuns" : 100,
+    "databaseName" : "org.postgresql.Driver",
+    "testWatchers" : "",
+    "historyLevel" : "full",
+    "watchActivities" : [ "start", "timer", "end" ],
+    "startTime" : 1430124594459,
+    "platform" : "camunda BPM"
+  },
+  "passResults" : [ {
+    "duration" : 15627,
+    "numberOfThreads" : 1,
+    "stepResults" : [ ],
+    "activityResults" : {
+      "27060" : [ {
+        "activityInstanceId" : "start:27076",
+        "activityId" : "start",
+        "processInstanceId" : "27060",
+        "startTime" : 1430124596918,
+        "endTime" : 1430124596919,
+        "duration" : 1
+      }, {
+        "activityInstanceId" : "timer:27081",
+        "activityId" : "timer",
+        "processInstanceId" : "27060",
+        "startTime" : 1430124596925,
+        "endTime" : 1430124609836,
+        "duration" : 12911
+      }, {
+        "activityInstanceId" : "end:27789",
+        "activityId" : "end",
+        "processInstanceId" : "27060",
+        "startTime" : 1430124609842,
+        "endTime" : 1430124609842,
+        "duration" : 0
+      } ],
+      ...
+}
+```
+
+
 <a name="configuration" />
 ## Configuration
 
@@ -191,3 +266,4 @@ mvn clean install -Pbenchmark,mysql,history-level-full
 [1]: docs/benchmark-report.png
 [2]: docs/sql-statement-log-report.png
 [3]: docs/longTermBenchmarkResults.png
+[4]: docs/activity-log-report.png
